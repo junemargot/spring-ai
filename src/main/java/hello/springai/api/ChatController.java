@@ -1,10 +1,8 @@
 package hello.springai.api;
 
 import hello.springai.domain.openai.service.OpenAIService;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
-
 import java.util.Map;
 
 @RestController

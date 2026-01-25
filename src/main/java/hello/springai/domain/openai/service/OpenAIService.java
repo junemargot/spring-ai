@@ -32,6 +32,16 @@ public class OpenAIService {
     private final OpenAiAudioSpeechModel openAiAudioSpeechModel;
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
 
+    /**
+     * OpenAIService 생성자
+     * Spring의 의존성 주입을 통해 필요한 모든 OpenAI 모델 초기화
+     *
+     * @param openAiChatModel                  GPT 채팅 모델
+     * @param openAiEmbeddingModel             임베딩 생성 모델
+     * @param openAiImageModel                 DALL-E 이미지 생성 모델
+     * @param openAiAudioSpeechModel           TTS(텍스트 -> 음성) 모델
+     * @param openAiAudioTranscriptionModel    STT(음성 -> 텍스트) 모델
+     */
     public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel) {
         this.openAiChatModel = openAiChatModel;
         this.openAiEmbeddingModel = openAiEmbeddingModel;
@@ -40,13 +50,18 @@ public class OpenAIService {
         this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
     }
 
-    // 1-1. Chat Model : response
+    /**
+     * GPT 모델을 사용하여 텍스트 응답 생성 (동기 방식)
+     *
+     * @param text 사용자의 입력 텍스트
+     * @return GPT 모델이 생성한 응답 텍스트
+     * @see #generateStream(String) 스트리밍 방식의 대안 메서드
+     */
     public String generate(String text) {
         // message
         SystemMessage systemMessage = new SystemMessage("");
         UserMessage userMessage = new UserMessage(text);
         AssistantMessage assistantMessage = new AssistantMessage("");
-
 
         // option
         OpenAiChatOptions options = OpenAiChatOptions.builder()
@@ -62,7 +77,13 @@ public class OpenAIService {
         return response.getResult().getOutput().getText();
     }
 
-    // 1-2. Chat Model : response stream
+    /**
+     * GPT 모델을 사용하여 텍스트 응답을 스트리밍 방식으로 생성 (비동기 방식)
+     *
+     * @param text 사용자의 입력 텍스트
+     * @return GPT 모델이 생성한 응답 텍스트의 Flux 스트림
+     * @see #generate(String) 동기 방식의 대안 메서드
+     */
     public Flux<String> generateStream(String text) {
         // message
         SystemMessage systemMessage = new SystemMessage("");
@@ -83,7 +104,13 @@ public class OpenAIService {
                 .mapNotNull(response -> response.getResult().getOutput().getText());
     }
 
-    // 2. Embedding Model
+    /**
+     * 텍스트들을 벡터 임베딩으로 변환
+     *
+     * @param texts 임베딩으로 변환할 텍스트 리스트
+     * @param model 사용할 OpenAI 임베딩 모델명
+     * @return 각 텍스트에 대응하는 임베딩 벡터(float 배열)의 리스트
+     */
     public List<float[]> generateEmbedding(List<String> texts, String model) {
         // option
         EmbeddingOptions embeddingOptions = OpenAiEmbeddingOptions.builder()
@@ -100,7 +127,15 @@ public class OpenAIService {
                 .toList();
     }
 
-    // 3. Image Model (DALL-E)
+    /**
+     * DALL-E 모델을 사용하여 텍스트 설명으로부터 이미지를 생성
+     *
+     * @param text 이미지 생성을 위한 텍스트 프롬프트
+     * @param count 생성할 이미지 개수
+     * @param height 생성할 이미지의 높이
+     * @param width 생성할 이미지의 너비
+     * @return 생성된 이미지들의 URL 리스트
+     */
     public List<String> generateImages(String text, int count, int height, int width) {
         // option
         OpenAiImageOptions imageOptions = OpenAiImageOptions.builder()
@@ -120,7 +155,12 @@ public class OpenAIService {
                 .toList();
     }
 
-    // 4-1. Audio Model - TTS
+    /**
+     * TTS(Text-To-Speech): 텍스트를 음성으로 변환
+     *
+     * @param text 음성으로 변환할 텍스트
+     * @return MP3 형식의 음성 데이터
+     */
     public byte[] tts(String text) {
         // option
         OpenAiAudioSpeechOptions speechOptions = OpenAiAudioSpeechOptions.builder()
@@ -137,7 +177,12 @@ public class OpenAIService {
         return response.getResult().getOutput();
     }
 
-    // 4-2. Audio Model - STT
+    /**
+     * STT(Speech-To-Text): 음성 파일을 텍스트로 변환
+     *
+     * @param audioFile 변환할 음성 파일 리소스
+     * @return VTT 형식의 텍스트 변환 결과
+     */
     public String stt(Resource audioFile) {
         // option
         OpenAiAudioApi.TranscriptResponseFormat responseformat = OpenAiAudioApi.TranscriptResponseFormat.VTT;
