@@ -4,6 +4,9 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -31,6 +34,7 @@ public class OpenAIService {
     private final OpenAiImageModel openAiImageModel;
     private final OpenAiAudioSpeechModel openAiAudioSpeechModel;
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
+    private final ChatMemoryRepository chatMemoryRepository;
 
     /**
      * OpenAIService 생성자
@@ -42,12 +46,13 @@ public class OpenAIService {
      * @param openAiAudioSpeechModel           TTS(텍스트 -> 음성) 모델
      * @param openAiAudioTranscriptionModel    STT(음성 -> 텍스트) 모델
      */
-    public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel) {
+    public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel, ChatMemoryRepository chatMemoryRepository) {
         this.openAiChatModel = openAiChatModel;
         this.openAiEmbeddingModel = openAiEmbeddingModel;
         this.openAiImageModel = openAiImageModel;
         this.openAiAudioSpeechModel = openAiAudioSpeechModel;
         this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
+        this.chatMemoryRepository = chatMemoryRepository;
     }
 
     /**
@@ -85,10 +90,16 @@ public class OpenAIService {
      * @see #generate(String) 동기 방식의 대안 메서드
      */
     public Flux<String> generateStream(String text) {
+
+        // ChatMemory로 관리하기 위한 key 명시 (user&page)
+        String userId = "beethoven" + "_" + "1";
+
         // message
-        SystemMessage systemMessage = new SystemMessage("");
-        UserMessage userMessage = new UserMessage(text);
-        AssistantMessage assistantMessage = new AssistantMessage("");
+        ChatMemory chatMemory = MessageWindowChatMemory.builder()
+                .maxMessages(10)
+                .chatMemoryRepository(chatMemoryRepository)
+                .build();
+        chatMemory.add(userId, new UserMessage(text)); // 신규 메시지도 추가
 
         // option
         OpenAiChatOptions options = OpenAiChatOptions.builder()
@@ -97,11 +108,22 @@ public class OpenAIService {
                 .build();
 
         // prompt
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage, assistantMessage), options);
+        Prompt prompt = new Prompt(chatMemory.get(userId), options);
+
+        // 응답 메시지를 저장할 임시 버퍼
+        StringBuilder responseBuffer = new StringBuilder();
 
         // request & response
         return openAiChatModel.stream(prompt)
-                .mapNotNull(response -> response.getResult().getOutput().getText());
+                .mapNotNull(response -> {
+                    String token = response.getResult().getOutput().getText();
+                    responseBuffer.append(token);
+                    return token;
+                })
+                .doOnComplete(() -> {
+                    chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
+                    chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
+                });
     }
 
     /**
