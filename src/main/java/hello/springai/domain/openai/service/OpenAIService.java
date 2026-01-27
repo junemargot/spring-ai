@@ -1,5 +1,6 @@
 package hello.springai.domain.openai.service;
 
+import hello.springai.domain.openai.dto.response.ComposerDto;
 import hello.springai.domain.openai.entity.Chat;
 import hello.springai.domain.openai.repository.ChatRepository;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
@@ -24,6 +25,7 @@ import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.*;
 import org.springframework.ai.openai.api.OpenAiAudioApi;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -86,6 +88,32 @@ public class OpenAIService {
         // request & response
         ChatResponse response = openAiChatModel.call(prompt);
         return response.getResult().getOutput().getText();
+    }
+
+    public List<ComposerDto> generateChat(String text) {
+
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
+
+        // message
+        SystemMessage systemMessage = new SystemMessage("");
+        UserMessage userMessage = new UserMessage(text);
+        AssistantMessage assistantMessage = new AssistantMessage("");
+
+        // option
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model("gpt-4.1-mini")
+                .temperature(0.7)
+                .build();
+
+        // prompt
+        Prompt prompt = new Prompt(List.of(systemMessage, userMessage, assistantMessage), options);
+
+        // request & response
+        return chatClient
+                .prompt(prompt)
+                .user(u -> u.text(text + "\n 모든 필드의 값(value)은 한국어로 작성해줘."))
+                .call()
+                .entity(new ParameterizedTypeReference<List<ComposerDto>>() {});
     }
 
     /**
