@@ -6,6 +6,7 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -96,6 +97,8 @@ public class OpenAIService {
      */
     public Flux<String> generateStream(String text) {
 
+        ChatClient chatClient = ChatClient.create(openAiChatModel);
+
         // ChatMemory로 관리하기 위한 key 명시 (user&page)
         String userId = "beethoven" + "_" + "1770";
 
@@ -126,17 +129,19 @@ public class OpenAIService {
         StringBuilder responseBuffer = new StringBuilder();
 
         // request & response
-        return openAiChatModel.stream(prompt)
-                .mapNotNull(response -> {
-                    String token = response.getResult().getOutput().getText();
+        return chatClient.prompt(prompt)
+                .stream()
+                .content()
+                .map(token -> {
                     responseBuffer.append(token);
                     return token;
                 })
                 .doOnComplete(() -> {
+                    // chatMemory 저장
                     chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
                     chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
 
-                    // history - 전체 대화 저장 (AI)
+                    // history - 전체 대화 저장
                     Chat chatAssistant = new Chat();
                     chatAssistant.setUserId(userId);
                     chatAssistant.setMessageType(MessageType.ASSISTANT);
@@ -144,6 +149,30 @@ public class OpenAIService {
 
                     chatRepository.saveAll(List.of(chatUser, chatAssistant));
                 });
+
+        // request & response
+//        return openAiChatModel.stream(prompt)
+//                .mapNotNull(response -> {
+//                    String token = response.getResult().getOutput().getText();
+//                    if(token != null) {
+//                        responseBuffer.append(token);
+//                        return token;
+//                    }
+//                    return null;
+//
+//                })
+//                .doOnComplete(() -> {
+//                    chatMemory.add(userId, new AssistantMessage(responseBuffer.toString()));
+//                    chatMemoryRepository.saveAll(userId, chatMemory.get(userId));
+//
+//                    // history - 전체 대화 저장 (AI)
+//                    Chat chatAssistant = new Chat();
+//                    chatAssistant.setUserId(userId);
+//                    chatAssistant.setMessageType(MessageType.ASSISTANT);
+//                    chatAssistant.setContent(responseBuffer.toString());
+//
+//                    chatRepository.saveAll(List.of(chatUser, chatAssistant));
+//                });
     }
 
     /**
