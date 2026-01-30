@@ -1,6 +1,6 @@
 package hello.springai.api;
 
-import hello.springai.domain.openai.dto.response.ComposerDto;
+import hello.springai.domain.openai.dto.response.ComposerResponseDto;
 import hello.springai.domain.openai.entity.Chat;
 import hello.springai.domain.openai.service.ChatService;
 import hello.springai.domain.openai.service.OpenAIService;
@@ -27,7 +27,7 @@ public class ChatController {
 //    }
 
     @PostMapping("/chat")
-    public List<ComposerDto> chat(@RequestBody Map<String, String> body) {
+    public List<ComposerResponseDto> chat(@RequestBody Map<String, String> body) {
         return openAIService.generateChat(body.get("text"));
     }
 

@@ -39,6 +39,9 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc'
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.ai:spring-ai-advisors-vector-store'
+    implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'
+//    implementation 'co.elastic.clients:elasticsearch-java:8.17.2'
 }
 
 dependencyManagement {

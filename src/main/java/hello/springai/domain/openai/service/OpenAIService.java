@@ -1,6 +1,6 @@
 package hello.springai.domain.openai.service;
 
-import hello.springai.domain.openai.dto.response.ComposerDto;
+import hello.springai.domain.openai.dto.response.ComposerResponseDto;
 import hello.springai.domain.openai.entity.Chat;
 import hello.springai.domain.openai.repository.ChatRepository;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
@@ -8,6 +8,8 @@ import org.springframework.ai.audio.transcription.AudioTranscriptionResponse;
 import org.springframework.ai.audio.tts.TextToSpeechPrompt;
 import org.springframework.ai.audio.tts.TextToSpeechResponse;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -25,6 +27,8 @@ import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
 import org.springframework.ai.openai.*;
 import org.springframework.ai.openai.api.OpenAiAudioApi;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -42,6 +46,7 @@ public class OpenAIService {
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
     private final ChatMemoryRepository chatMemoryRepository;
     private final ChatRepository chatRepository;
+    private final VectorStore elasticsearchVectorStore;
 
     /**
      * OpenAIService 생성자
@@ -53,7 +58,7 @@ public class OpenAIService {
      * @param openAiAudioSpeechModel           TTS(텍스트 -> 음성) 모델
      * @param openAiAudioTranscriptionModel    STT(음성 -> 텍스트) 모델
      */
-    public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel, ChatMemoryRepository chatMemoryRepository, ChatRepository chatRepository) {
+    public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel, ChatMemoryRepository chatMemoryRepository, ChatRepository chatRepository, VectorStore elasticsearchVectorStore) {
         this.openAiChatModel = openAiChatModel;
         this.openAiEmbeddingModel = openAiEmbeddingModel;
         this.openAiImageModel = openAiImageModel;
@@ -61,6 +66,7 @@ public class OpenAIService {
         this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
         this.chatMemoryRepository = chatMemoryRepository;
         this.chatRepository = chatRepository;
+        this.elasticsearchVectorStore = elasticsearchVectorStore;
     }
 
     /**
@@ -90,7 +96,7 @@ public class OpenAIService {
         return response.getResult().getOutput().getText();
     }
 
-    public List<ComposerDto> generateChat(String text) {
+    public List<ComposerResponseDto> generateChat(String text) {
 
         ChatClient chatClient = ChatClient.create(openAiChatModel);
 
@@ -113,7 +119,7 @@ public class OpenAIService {
                 .prompt(prompt)
                 .user(u -> u.text(text + "\n 모든 필드의 값(value)은 한국어로 작성해줘."))
                 .call()
-                .entity(new ParameterizedTypeReference<List<ComposerDto>>() {});
+                .entity(new ParameterizedTypeReference<List<ComposerResponseDto>>() {});
     }
 
     /**
@@ -136,7 +142,6 @@ public class OpenAIService {
         chatUser.setMessageType(MessageType.USER);
         chatUser.setContent(text);
 
-
         // message (multi-turn)
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .maxMessages(10)
@@ -150,6 +155,16 @@ public class OpenAIService {
                 .temperature(0.7)
                 .build();
 
+        // RAG
+        // - threshold(0.8): 유사도가 80% 이상인 문서만 가져옴
+        // - topK(6): 가장 유사한 문서 6개를 가져옴
+        Advisor ragAdvisor = QuestionAnswerAdvisor.builder(elasticsearchVectorStore)
+                .searchRequest(SearchRequest.builder()
+                        .similarityThreshold(0.8d)
+                        .topK(6)
+                        .build())
+                .build();
+
         // prompt
         Prompt prompt = new Prompt(chatMemory.get(userId), options);
 
@@ -158,6 +173,8 @@ public class OpenAIService {
 
         // request & response
         return chatClient.prompt(prompt)
+                .tools(new ChatToolsService())
+                .advisors(ragAdvisor)
                 .stream()
                 .content()
                 .map(token -> {
