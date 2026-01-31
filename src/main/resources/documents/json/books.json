@@ -1,0 +1,82 @@
+[
+  {
+    "id": "B001",
+    "title": "Spring AI 실전 가이드",
+    "author": "김철수",
+    "summary": "LLM과 스프링 프레임워크를 결합하여 지능형 애플리케이션을 구축하는 방법을 다룹니다.",
+    "category": "Technology",
+    "published_year": 2024
+  },
+  {
+    "id": "B002",
+    "title": "자바 마스터 클래스",
+    "author": "이영희",
+    "summary": "자바 21의 최신 기능과 가상 스레드를 활용한 고성능 프로그래밍 기법을 설명합니다.",
+    "category": "Technology",
+    "published_year": 2023
+  },
+  {
+    "id": "B003",
+    "title": "데이터베이스 설계의 정석",
+    "author": "박지민",
+    "summary": "관계형 데이터베이스부터 NoSQL까지 효율적인 데이터 모델링 패턴을 소개합니다.",
+    "category": "Database",
+    "published_year": 2022
+  },
+  {
+    "id": "B004",
+    "title": "클라우드 네이티브 보안",
+    "author": "최도현",
+    "summary": "쿠버네티스와 도커 환경에서 컨테이너 기반 보안을 강화하는 실무 가이드를 제공합니다.",
+    "category": "Security",
+    "published_year": 2024
+  },
+  {
+    "id": "B005",
+    "title": "파이썬 머신러닝 기초",
+    "author": "Sarah Jones",
+    "summary": "Scikit-learn과 Pandas를 활용하여 기본적인 예측 모델을 만드는 과정을 단계별로 학습합니다.",
+    "category": "AI/ML",
+    "published_year": 2021
+  },
+  {
+    "id": "B006",
+    "title": "리액트 디자인 패턴",
+    "author": "강수진",
+    "summary": "대규모 프론트엔드 애플리케이션의 유지보수성을 높이는 컴포넌트 설계 방식을 다룹니다.",
+    "category": "Frontend",
+    "published_year": 2023
+  },
+  {
+    "id": "B007",
+    "title": "마이크로서비스 아키텍처",
+    "author": "정민기",
+    "summary": "모놀리식 서비스를 마이크로서비스로 전환할 때 발생하는 문제와 해결 방안을 제시합니다.",
+    "category": "Architecture",
+    "published_year": 2022
+  },
+  {
+    "id": "B008",
+    "title": "알고리즘 문제 풀이 전략",
+    "author": "홍길동",
+    "summary": "코딩 테스트를 대비하여 효율적인 시간 복잡도를 갖는 알고리즘 설계법을 전수합니다.",
+    "category": "Computer Science",
+    "published_year": 2020
+  },
+  {
+    "id": "B009",
+    "title": "Kotlin 멀티플랫폼 시작하기",
+    "author": "안나연",
+    "summary": "하나의 코드로 안드로이드와 iOS 앱을 동시에 개발하는 효율적인 멀티플랫폼 기술을 배웁니다.",
+    "category": "Mobile",
+    "published_year": 2024
+  },
+  {
+    "id": "B010",
+    "title": "운영체제의 이해",
+    "author": "임채무",
+    "summary": "프로세스 관리, 메모리 할당, 파일 시스템 등 현대 운영체제의 핵심 원리를 깊게 파고듭니다.",
+    "category": "Computer Science",
+    "published_year": 2019
+  }
+]

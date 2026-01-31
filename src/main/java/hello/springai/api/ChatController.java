@@ -4,6 +4,7 @@ import hello.springai.domain.openai.dto.response.ComposerResponseDto;
 import hello.springai.domain.openai.entity.Chat;
 import hello.springai.domain.openai.service.ChatService;
 import hello.springai.domain.openai.service.OpenAIService;
+import hello.springai.domain.openai.service.RagService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -15,10 +16,12 @@ import java.util.Map;
 public class ChatController {
     private final OpenAIService openAIService;
     private final ChatService chatService;
+    private final RagService ragService;
 
-    public ChatController(OpenAIService openAIService, ChatService chatService) {
+    public ChatController(OpenAIService openAIService, ChatService chatService, RagService ragService) {
         this.openAIService = openAIService;
         this.chatService = chatService;
+        this.ragService = ragService;
     }
 
 //    @PostMapping("/chat")
@@ -39,5 +42,10 @@ public class ChatController {
     @PostMapping("/chat/history/{userid}")
     public List<Chat> getChatHistory(@PathVariable("userid") String userId) {
         return chatService.readAllChats(userId);
+    }
+
+    @PostMapping("/chat/stream/rag")
+    public Flux<String> streamChatRag(@RequestBody Map<String, String> body) {
+        return ragService.generateStreamWithRag(body.get("text"));
     }
 }
