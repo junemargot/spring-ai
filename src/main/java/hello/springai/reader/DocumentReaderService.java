@@ -4,6 +4,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.JsonReader;
 import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
+import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ import java.util.List;
 public class DocumentReaderService {
 
     // ===== PDF =====
-    @Value("classpath:documents/pdf/7. 자바 메모리 구조와 static.pdf")
+    @Value("classpath:documents/pdf/lorem-ipsum-10pages.pdf")
     private Resource pdfResource;
 
     // ===== TXT 파일들 =====
@@ -69,7 +70,7 @@ public class DocumentReaderService {
     public List<Document> loadJsonDocuments() {
         JsonReader reader = new JsonReader(
                 jsonResource,
-                "title", "author", "summary", "category"
+                "title", "author", "summary", "category", "published_year"
         );
         return reader.get();
     }

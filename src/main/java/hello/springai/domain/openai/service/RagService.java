@@ -3,16 +3,12 @@ package hello.springai.domain.openai.service;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class RagService {
@@ -29,7 +25,7 @@ public class RagService {
 
         ChatClient chatClient = ChatClient.create(openAiChatModel);
 
-        // option
+        // OpenAI Option 설정
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("gpt-4.1-mini")
                 .temperature(0.7)
@@ -39,8 +35,8 @@ public class RagService {
         QuestionAnswerAdvisor ragAdvisor = QuestionAnswerAdvisor
                 .builder(elasticsearchVectorStore)
                 .searchRequest(SearchRequest.builder()
-                        .similarityThreshold(0.0d)
-                        .topK(6)
+                        .similarityThreshold(0.4d)
+                        .topK(15)
                         .build())
                 .build();
 

@@ -28,43 +28,42 @@ public class DocumentInitializer {
         log.info("=== 문서 로딩 시작 ===");
 
         try {
-            List<Document> allDocuments = new ArrayList<>();
+//            List<Document> allDocuments = new ArrayList<>();
 
 //            log.info("PDF 읽기 시작...");
 //            List<Document> pdfDocs = documentReaderService.loadPdfDocuments();
 //            log.info("PDF 읽기 완료: {} 개", pdfDocs.size());
-
-            List<Document> textDocs = documentReaderService.loadTextDocuments();
-            allDocuments.addAll(textDocs);
-            log.info("TXT 읽기 완료: {} 개", textDocs.size());
-
-            List<Document> jsonDocs = documentReaderService.loadJsonDocuments();
-            allDocuments.addAll(jsonDocs);
-            log.info("JSON 읽기 완료: {} 개", jsonDocs.size());
-
-            log.info("읽어온 문서 개수: {}", allDocuments.size());
+//
+//            List<Document> textDocs = documentReaderService.loadTextDocuments();
+//            allDocuments.addAll(textDocs);
+//            log.info("TXT 읽기 완료: {} 개", textDocs.size());
+//
+//            List<Document> jsonDocs = documentReaderService.loadJsonDocuments();
+//            allDocuments.addAll(jsonDocs);
+//            log.info("JSON 읽기 완료: {} 개", jsonDocs.size());
+//
+//            log.info("읽어온 문서 개수: {}", allDocuments.size());
 
             // 1. 모든 문서 읽기
-//            List<Document> documents = documentReaderService.loadAllDocuments();
-//            log.info("읽어온 문서 개수: {}", documents.size());
+            List<Document> documents = documentReaderService.loadAllDocuments();
+            log.info("읽어온 문서 개수: {}", documents.size());
 
             // 2. 문서 분할 (청크 크기: 500 토큰, 오버랩: 100토큰)
-//            TokenTextSplitter splitter = new TokenTextSplitter(
-//                    500,
-//                    100,
-//                    50,
-//                    10000,
-//                    true
-////            );
-//
-//            List<Document> splitDocuments = splitter.apply(documents);
-//            log.info("분할된 문서 개수: {}", splitDocuments.size());
+            TokenTextSplitter splitter = new TokenTextSplitter(
+                    500,
+                    100,
+                    50,
+                    10000,
+                    true
+            );
+
+            List<Document> splitDocuments = splitter.apply(documents);
+            log.info("분할된 문서 개수: {}", splitDocuments.size());
 
             // 3. VectorStore에 저장 (임베딩 자동 생성)
-//            elasticsearchVectorStore.add(splitDocuments);
-            if(!allDocuments.isEmpty()) {
-                elasticsearchVectorStore.add(allDocuments);
-                log.info("=== VectorStore 저장 완료 ===");
+            if(!splitDocuments.isEmpty()) {
+                elasticsearchVectorStore.add(splitDocuments);
+                log.info("=== VectorStore 저장 완료: {}개 문서 ===", splitDocuments.size());
             } else {
                 log.warn("저장할 문서가 없습니다.");
             }
