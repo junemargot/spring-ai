@@ -19,6 +19,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingOptions;
 import org.springframework.ai.embedding.EmbeddingRequest;
@@ -84,7 +85,8 @@ public class OpenAIService {
 
         // option
         OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model("gpt-4.1-mini")
+//                .model("gpt-4.1-mini")
+                .model("gpt-5")
                 .temperature(0.7)
                 .build();
 
@@ -149,20 +151,53 @@ public class OpenAIService {
                 .build();
         chatMemory.add(userId, new UserMessage(text)); // 신규 메시지도 추가
 
+        // VectorStore 검색 (RAG)
+        String ragContext = "";
+        try {
+            SearchRequest searchRequest = SearchRequest.builder()
+                    .query(text)
+                    .topK(15)
+                    .similarityThreshold(0.5d)
+                    .build();
+
+            List<Document> relevantDocs = elasticsearchVectorStore.similaritySearch(searchRequest);
+
+            if(!relevantDocs.isEmpty()) {
+                StringBuilder context = new StringBuilder("\n\n=== 참고 문서 ===\n");
+                for(int i = 0; i < Math.min(5, relevantDocs.size()); i++) {
+                    Document doc = relevantDocs.get(i);
+                    context.append("\n[문서 ").append(i + 1).append("]\n");
+                    context.append(doc.getText()).append("\n");
+                }
+                ragContext = context.toString();
+            }
+        } catch (Exception e) {
+            // VectorStore 검색 실패 시 무시하고 계속 진행
+            System.err.println("RAG 검색 실패: " + e.getMessage());
+        }
+
+        // 2. System Message에 RAG 컨텍스트 + 가이드 포함
+        String systemPrompt = """
+                당신은 친절하고 유능한 AI 어시스턴트입니다.
+                
+                %s
+                
+                답변 가이드:
+                - 위 참고 문서에 관련 정보가 있다면 우선적으로 활용하세요
+                - 참고 문서가 없거나 관련이 없다면, 당신의 지식을 활용하여 답변하세요
+                - 자연스럽고 친절하게 답변해주세요
+                """.formatted(ragContext.isEmpty() ? "제공된 참고 문서가 없습니다." : ragContext);
+
+        SystemMessage systemMessage = new SystemMessage(systemPrompt);
+
+        // 3. ChatMemory에 추가
+        chatMemory.add(userId, systemMessage);
+        chatMemory.add(userId, new UserMessage(text));
+
         // option
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model("gpt-4.1-mini")
                 .temperature(0.7)
-                .build();
-
-        // RAG
-        // - threshold(0.8): 유사도가 80% 이상인 문서만 가져옴
-        // - topK(6): 가장 유사한 문서 6개를 가져옴
-        Advisor ragAdvisor = QuestionAnswerAdvisor.builder(elasticsearchVectorStore)
-                .searchRequest(SearchRequest.builder()
-                        .similarityThreshold(0.8d)
-                        .topK(6)
-                        .build())
                 .build();
 
         // prompt
@@ -174,7 +209,7 @@ public class OpenAIService {
         // request & response
         return chatClient.prompt(prompt)
                 .tools(new ChatToolsService())
-                .advisors(ragAdvisor)
+//                .advisors(ragAdvisor)
                 .stream()
                 .content()
                 .map(token -> {
