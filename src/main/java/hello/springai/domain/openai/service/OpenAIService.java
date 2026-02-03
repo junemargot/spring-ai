@@ -58,6 +58,9 @@ public class OpenAIService {
      * @param openAiImageModel                 DALL-E 이미지 생성 모델
      * @param openAiAudioSpeechModel           TTS(텍스트 -> 음성) 모델
      * @param openAiAudioTranscriptionModel    STT(음성 -> 텍스트) 모델
+     * @param chatMemoryRepository             대화 메모리 저장소
+     * @param chatRepository                   대화 이력 저장소
+     * @param elasticsearchVectorStore         RAG용 Elasticsearch 벡터 저장소
      */
     public OpenAIService(OpenAiChatModel openAiChatModel, OpenAiEmbeddingModel openAiEmbeddingModel, OpenAiImageModel openAiImageModel, OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel, ChatMemoryRepository chatMemoryRepository, ChatRepository chatRepository, VectorStore elasticsearchVectorStore) {
         this.openAiChatModel = openAiChatModel;
@@ -98,6 +101,13 @@ public class OpenAIService {
         return response.getResult().getOutput().getText();
     }
 
+    /**
+     * GPT 모델을 사용하여 구조화된 응답을 생성 (작곡가 정보)
+     * ChatClient를 사용하여 응답을 ComposerResponseDto 리스트로 파싱
+     *
+     * @param text 작곡가에 대한 질문 텍스트
+     * @return 작곡가 정보 DTO 리스트 (한국어)
+     */
     public List<ComposerResponseDto> generateChat(String text) {
 
         ChatClient chatClient = ChatClient.create(openAiChatModel);
@@ -125,10 +135,17 @@ public class OpenAIService {
     }
 
     /**
-     * GPT 모델을 사용하여 텍스트 응답을 스트리밍 방식으로 생성 (비동기 방식)
+     * GPT 모델을 사용하여 RAG 기반 스트리밍 응답 생성 (비동기 방식)
+     *
+     * 주요 기능:
+     * - ChatMemory를 통한 대화 컨텍스트 관리 (최근 10개 메시지)
+     * - Elasticsearch VectorStore 기반 RAG 검색 (유사도 0.5 이상, 상위 15개)
+     * - 검색된 문서를 System Message로 제공하여 컨텍스트 강화
+     * - 전체 대화 이력을 DB에 영구 저장
+     * - ChatTools 활용 가능
      *
      * @param text 사용자의 입력 텍스트
-     * @return GPT 모델이 생성한 응답 텍스트의 Flux 스트림
+     * @return GPT 모델이 생성한 RAG 기반 응답의 Flux 스트림
      * @see #generate(String) 동기 방식의 대안 메서드
      */
     public Flux<String> generateStream(String text) {
